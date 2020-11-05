@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import CoreData
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -22,23 +23,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
     
-    // Se de repente o usuário receber uma chamada
-    func applicationWillResignActive(_ application: UIApplication) {
-        print("applicationWillResignActive")
-    }
-    
-    // Quando o botão home é acionado e fique em segundo plano
-    func applicationDidEnterBackground(_ application: UIApplication) {
-        print("applicationDidEnterBackground")
-    }
-    
-    // Quando o app é encerrado
     func applicationWillTerminate(_ application: UIApplication) {
-        print("applicationWillTerminate")
+        self.saveContext()
     }
     
+    
+    // MARK: - Core Data stack
 
-    // MARK: UISceneSession Lifecycle
+    lazy var persistentContainer: NSPersistentCloudKitContainer = {
+        
+        let container = NSPersistentCloudKitContainer(name: "DataModel")
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            if let error = error as NSError? {
+                
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        })
+        return container
+    }()
+
+    // MARK: - Core Data Saving support
+
+    func saveContext () {
+        let context = persistentContainer.viewContext
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+              
+                let nserror = error as NSError
+                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+            }
+        }
+    }
+
+}
+
+    // MARK: - UISceneSession Lifecycle
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         // Called when a new scene session is being created.
@@ -52,6 +73,4 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
 
-
-}
 
