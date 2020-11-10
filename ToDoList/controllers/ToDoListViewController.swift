@@ -21,10 +21,12 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-    
+        
 
+        showSearchBar()
         loadItems()
     }
+    
 
     //MARK: - Add New Items
     @IBAction func addButtonPressd(_ sender: UIBarButtonItem) {
@@ -32,11 +34,10 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
         var textField = UITextField()
         
         let alert = UIAlertController(title: "Add new item", message: "", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .destructive, handler: { (UIAlertAction) in}))
     
         let action = UIAlertAction(title: "Add item", style: .default) { (action) in
             // what will happen once the user clicks the add item
-           
-            
             let newItem = Item(context: self.context)
             newItem.title = textField.text!
             newItem.done = false
@@ -48,9 +49,7 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
             alertTextField.placeholder = "Create new item"
             textField = alertTextField
         }
-        
         alert.addAction(action)
-        
         present(alert, animated: true, completion: nil)
     }
     
@@ -60,21 +59,16 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
-        
         let item = itemArray[indexPath.row]
-        
         cell.textLabel?.text = item.title
-        
         // Ternary operator =>
         // value = condition ? valueIfTrue : valueIfFalse
         cell.accessoryType = item.done == true ? .checkmark : .none
     
-        
         return cell
     }
     
-    //MARK: - Delegate methods
-    
+    //MARK: - TableView Delegate methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         //print(itemArray[indexPath.row])
         
@@ -86,11 +80,18 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
         
         
     }
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        
+        if editingStyle == .delete {
+            self.context.delete(itemArray[indexPath.row])
+            self.itemArray.remove(at: indexPath.row)
+            saveItems()
+        }
+    }
     
-    //MARK: - Model Manupulation Methods
+        //MARK: - Core Data Model Manupulation Methods
     
     func saveItems() {
-       
         do {
             try context.save()
         }catch{
@@ -100,7 +101,6 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
     }
     
     func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()){
-        
         do {
             itemArray = try context.fetch(request)
         } catch {
@@ -111,25 +111,33 @@ class ToDoListViewController: UITableViewController, UISearchBarDelegate {
     }
     
     //MARK: - SearchBar delegates
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        let request : NSFetchRequest<Item> = Item.fetchRequest()
-        
-        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        
-        loadItems(with: request)
-    }
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+
+        loadItems(with: request)
+        
         if searchBar.text?.count == 0{
             loadItems()
-            
-            
             DispatchQueue.main.async {
                 searchBar.resignFirstResponder()
             }
         }
-        
+    }
+    // hiden search bar
+    func showSearchBar() {
+        let searchController = UISearchController(searchResultsController: nil)
+        searchController.searchBar.delegate = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.hidesNavigationBarDuringPresentation = true
+        navigationItem.hidesSearchBarWhenScrolling = true
+        //true for hiding, false for keep showing while scrolling
+        searchController.searchBar.sizeToFit()
+        searchController.searchBar.returnKeyType = UIReturnKeyType.search
+        searchController.searchBar.placeholder = "Search here"
+        navigationItem.searchController = searchController
     }
 
 
